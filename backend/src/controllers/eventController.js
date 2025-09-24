@@ -1,4 +1,5 @@
-
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
 let Event, User, Category;
 /**
  * Initialise le modèle events
@@ -8,6 +9,104 @@ const initController = (models) => {
     Event = models.Event;
     User = models.User;
     Category = models.Category;
+};
+
+
+// Configuration Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configuration multer pour Cloudinary
+const upload = multer({
+    storage: multer.memoryStorage(), // Stockage en mémoire
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+    fileFilter: (req, file, cb) => {
+        // Filtrer les types de fichiers
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Seules les images sont autorisées'), false);
+        }
+    }
+});
+
+const createEvent = async (req, res) => {
+    const { title, description, location, latitude, longitude, eventDate, isPublic, maxParticipants, categoryName } = req.body;
+    const organizerId = req.user.userId;
+
+    try {
+        let imageUrl = null;
+
+        // Upload image vers Cloudinary si présente
+        if (req.file) {
+            console.log('Upload en cours vers Cloudinary...');
+
+            const result = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'events', // Organise dans un dossier
+                        transformation: [
+                            { width: 800, height: 600, crop: 'limit' }, // Redimensionnement
+                            { quality: 'auto' } // Optimisation automatique
+                        ],
+                        format: 'webp' // Format optimisé
+                    },
+                    (error, result) => {
+                        if (error) {
+                            console.error('Erreur Cloudinary:', error);
+                            reject(error);
+                        } else {
+                            console.log('Upload réussi:', result.public_id);
+                            resolve(result);
+                        }
+                    }
+                ).end(req.file.buffer);
+            });
+
+            imageUrl = result.secure_url;
+        }
+
+        // Vérifier la catégorie
+        const category = await Category.findOne({ where: { name: categoryName } });
+        if (!category) {
+            return res.status(400).json({
+                status: 'error',
+                message: `Catégorie "${categoryName}" non trouvée`
+            });
+        }
+
+        // Créer l'événement avec l'URL Cloudinary
+        const newEvent = await Event.create({
+            title,
+            description,
+            location,
+            latitude,
+            longitude,
+            eventDate,
+            imageUrl, // URL Cloudinary
+            isPublic,
+            maxParticipants,
+            organizerId,
+            categoryId: category.id
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Événement créé avec succès',
+            data: newEvent
+        });
+
+    } catch (error) {
+        console.error('Erreur création événement:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Erreur lors de la création de l\'événement',
+            error: error.message
+        });
+    }
 };
 const getAllEvents = async (req, res) => {
     try {
@@ -37,46 +136,6 @@ const getAllEvents = async (req, res) => {
     }
 };
 
-const createEvent = async (req, res) => {
-    const { title, description, location, latitude, longitude, eventDate, imageUrl, isPublic, maxParticipants, categoryName } = req.body;
-    const organizerId = req.user.userId;
-
-    try {
-        const category = await Category.findOne({ where: { name: categoryName } });
-        if (!category) {
-            return res.status(400).json({
-                status: 'error',
-                message: `Catégorie "${categoryName}" non trouvée`
-            });
-        }
-        const newEvent = await Event.create({
-            title,
-            description,
-            location,
-            latitude,
-            longitude,
-            eventDate,
-            imageUrl,
-            isPublic,
-            maxParticipants,
-            organizerId,
-            categoryId: category.id
-        });
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Événement créé avec succès',
-            data: newEvent
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Erreur lors de la création de l\'événement',
-            error: error.message
-        });
-    }
-};
 
 // READ: Récupérer un événement par ID
 const getEventById = async (req, res) => {
@@ -223,6 +282,7 @@ module.exports = {
     createEvent,
     getAllEvents,
     getEventStats,
+    upload,
     getEventById,
     updateEvent,
     deleteEvent

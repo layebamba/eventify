@@ -3,6 +3,7 @@ const router = express.Router();
 const eventController = require('../controllers/eventController');
 const { authenticateToken, requireOrganizer } = require('../middleware/auth');
 const EventController = require("../controllers/eventController");
+const { upload } = require('../controllers/eventController');
 
 
 let Event, User, Category;
@@ -37,19 +38,18 @@ const initEventRoutes = (models) => {
  *                   type: integer
  */
 router.get('/', eventController.getAllEvents);
-
 /**
  * @swagger
  * /api/v1/events:
  *   post:
- *     summary: Créer un événement
+ *     summary: Créer un événement avec image
  *     tags: [Événements]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -66,8 +66,10 @@ router.get('/', eventController.getAllEvents);
  *               eventDate:
  *                 type: string
  *                 format: date-time
- *               imageUrl:
+ *               image:
  *                 type: string
+ *                 format: binary
+ *                 description: Image de l'événement
  *               isPublic:
  *                 type: boolean
  *               maxParticipants:
@@ -80,8 +82,7 @@ router.get('/', eventController.getAllEvents);
  *       500:
  *         description: Erreur interne
  */
-router.post('/',authenticateToken,requireOrganizer, eventController.createEvent);
-
+    router.post('/', authenticateToken, requireOrganizer, upload.single('image'), eventController.createEvent);
 /**
  * @swagger
  * /api/v1/events/{id}:
