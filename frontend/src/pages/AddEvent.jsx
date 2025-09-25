@@ -160,7 +160,7 @@ export default function AddEvent({ editMode = false }) {
                 </button>
                 <button
                     onClick={() => navigate("/events")}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-yellow-300"
                 >
                     Voir tableau
                 </button>
@@ -226,7 +226,7 @@ export default function AddEvent({ editMode = false }) {
                     ))}
                 </select>
 
-                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                <button type="submit" className="w-full bg-green-600 text-white py-2 rounded hover:bg-yellow-300">
                     {editMode ? "Mettre à jour" : "Créer"}
                 </button>
             </form>

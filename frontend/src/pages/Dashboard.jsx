@@ -4,7 +4,7 @@ import AddEvent from "./AddEvent";
 export default function Dashboard() {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({}); // stats par eventId
+    const [stats, setStats] = useState({});
 
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
