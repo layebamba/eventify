@@ -21,7 +21,7 @@ cloudinary.config({
 
 // Configuration multer pour Cloudinary
 const upload = multer({
-    storage: multer.memoryStorage(), // Stockage en mémoire
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
     fileFilter: (req, file, cb) => {
         // Filtrer les types de fichiers
@@ -39,20 +39,17 @@ const createEvent = async (req, res) => {
 
     try {
         let imageUrl = null;
-
-        // Upload image vers Cloudinary si présente
         if (req.file) {
             console.log('Upload en cours vers Cloudinary...');
-
             const result = await new Promise((resolve, reject) => {
                 cloudinary.uploader.upload_stream(
                     {
-                        folder: 'events', // Organise dans un dossier
+                        folder: 'events',
                         transformation: [
-                            { width: 800, height: 600, crop: 'limit' }, // Redimensionnement
-                            { quality: 'auto' } // Optimisation automatique
+                            { width: 800, height: 600, crop: 'limit' },
+                            { quality: 'auto' }
                         ],
-                        format: 'webp' // Format optimisé
+                        format: 'webp'
                     },
                     (error, result) => {
                         if (error) {
@@ -68,8 +65,6 @@ const createEvent = async (req, res) => {
 
             imageUrl = result.secure_url;
         }
-
-        // Vérifier la catégorie
         const category = await Category.findOne({ where: { name: categoryName } });
         if (!category) {
             return res.status(400).json({
@@ -77,8 +72,6 @@ const createEvent = async (req, res) => {
                 message: `Catégorie "${categoryName}" non trouvée`
             });
         }
-
-        // Créer l'événement avec l'URL Cloudinary
         const newEvent = await Event.create({
             title,
             description,
@@ -202,34 +195,65 @@ const getEventStats = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 // UPDATE: Mettre à jour un événement
 const updateEvent = async (req, res) => {
     const { id } = req.params;
-    const { title, description, location, latitude, longitude, eventDate, imageUrl, isPublic, maxParticipants, organizerId, categoryId } = req.body;
+    const { title, description, location, latitude, longitude, eventDate, isPublic, maxParticipants, categoryName } = req.body;
+    const organizerId = req.user.userId;
 
     try {
         const event = await Event.findOne({ where: { id } });
-
         if (!event) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Événement non trouvé'
-            });
+            return res.status(404).json({ status: 'error', message: 'Événement non trouvé' });
         }
 
-        // Mettre à jour les informations
-        event.title = title || event.title;
-        event.description = description || event.description;
-        event.location = location || event.location;
-        event.latitude = latitude || event.latitude;
-        event.longitude = longitude || event.longitude;
-        event.eventDate = eventDate || event.eventDate;
-        event.imageUrl = imageUrl || event.imageUrl;
-        event.isPublic = isPublic !== undefined ? isPublic : event.isPublic;
-        event.maxParticipants = maxParticipants || event.maxParticipants;
-        event.organizerId = organizerId || event.organizerId;
-        event.categoryId = categoryId || event.categoryId;
+        // Gestion de l'image Cloudinary
+        let imageUrl = event.imageUrl;
+        if (req.file) {
+            console.log('Upload en cours vers Cloudinary...');
+            const result = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'events',
+                        transformation: [
+                            { width: 800, height: 600, crop: 'limit' },
+                            { quality: 'auto' }
+                        ],
+                        format: 'webp'
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                ).end(req.file.buffer);
+            });
+            imageUrl = result.secure_url;
+        }
+
+        let categoryId = event.categoryId;
+        if (categoryName) {
+            const category = await Category.findOne({ where: { name: categoryName } });
+            if (!category) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: `Catégorie "${categoryName}" non trouvée`
+                });
+            }
+            categoryId = category.id;
+        }
+
+        event.title = title ?? event.title;
+        event.description = description ?? event.description;
+        event.location = location ?? event.location;
+        event.latitude = latitude ? parseFloat(latitude) : event.latitude;
+        event.longitude = longitude ? parseFloat(longitude) : event.longitude;
+        event.isPublic = isPublic === 'true' ? true : isPublic === 'false' ? false : event.isPublic;
+        event.maxParticipants = maxParticipants ? parseInt(maxParticipants) : event.maxParticipants;
+
+        event.imageUrl = imageUrl;
+
+        event.organizerId = organizerId;
+        event.categoryId = categoryId;
 
         await event.save();
 
@@ -240,6 +264,7 @@ const updateEvent = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Erreur mise à jour événement:', error);
         res.status(500).json({
             status: 'error',
             message: 'Erreur lors de la mise à jour de l\'événement',
@@ -247,6 +272,8 @@ const updateEvent = async (req, res) => {
         });
     }
 };
+
+
 
 // DELETE: Supprimer un événement
 const deleteEvent = async (req, res) => {

@@ -6,6 +6,7 @@ const EventController = require("../controllers/eventController");
 const { upload } = require('../controllers/eventController');
 
 
+
 let Event, User, Category;
 const initEventRoutes = (models) => {
     EventController.initController(models);
@@ -103,7 +104,6 @@ router.get('/', eventController.getAllEvents);
  *         description: Événement non trouvé
  */
 router.get('/:id', eventController.getEventById);
-
 /**
  * @swagger
  * /api/v1/events/{id}:
@@ -120,7 +120,7 @@ router.get('/:id', eventController.getEventById);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -137,23 +137,23 @@ router.get('/:id', eventController.getEventById);
  *               eventDate:
  *                 type: string
  *                 format: date-time
- *               imageUrl:
+ *               image:
  *                 type: string
+ *                 format: binary
  *               isPublic:
  *                 type: boolean
  *               maxParticipants:
  *                 type: integer
- *               organizerId:
- *                 type: integer
- *               categoryId:
- *                 type: integer
+ *               categoryName:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Événement mis à jour avec succès
  *       404:
  *         description: Événement non trouvé
  */
-router.put('/:id',requireOrganizer, eventController.updateEvent);
+router.put('/:id',authenticateToken, requireOrganizer, upload.single('image'), eventController.updateEvent);
+
 
 /**
  * @swagger
