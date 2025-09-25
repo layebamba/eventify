@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Register from "./pages/Register";
@@ -12,6 +12,10 @@ import EventListPage from "./pages/EventListPage.jsx";
 import EditEventPage from "./pages/EditEventPage.jsx";
 import EventDetailsPage from "./pages/EventDetailsPage.jsx";
 
+function BoardParticipant() {
+    return null;
+}
+
 function App() {
     return (
         <Router>
@@ -24,6 +28,7 @@ function App() {
                 <Route path="/events" element={<EventListPage />} />
                 <Route path="/events/edit/:id" element={<EditEventPage />} />
                 <Route path="/events/:id" element={<EventDetailsPage />} />
+                <Route path="/boardParticipant" element={<BoardParticipant />} />
                 <Route
                     path="/dashboard"
                     element={

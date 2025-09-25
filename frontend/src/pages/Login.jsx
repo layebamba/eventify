@@ -22,8 +22,16 @@ export default function Login() {
 
             if (res.ok) {
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("role", data.user.role);
                 alert("Connexion réussie !");
-                window.location.href = "/dashboard"; // redirection après login
+                if (data.user.role === "organisateur") {
+                    window.location.href = "/dashboard";
+                } else if (data.user.role === "participant") {
+                    window.location.href = "/";
+                }
+                else {
+                    window.location.href = "/dashboard"; // fallback
+                }
             } else {
                 alert(data.message || "Email ou mot de passe incorrect");
             }

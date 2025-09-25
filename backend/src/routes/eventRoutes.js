@@ -103,7 +103,7 @@ router.get('/', eventController.getAllEvents);
  *       404:
  *         description: Événement non trouvé
  */
-router.get('/:id', eventController.getEventById);
+router.get('/:id',authenticateToken, eventController.getEventById);
 /**
  * @swagger
  * /api/v1/events/{id}:
@@ -174,7 +174,7 @@ router.put('/:id',authenticateToken, requireOrganizer, upload.single('image'), e
  *       404:
  *         description: Événement non trouvé
  */
-router.delete('/:id',requireOrganizer, eventController.deleteEvent);
+router.delete('/:id',authenticateToken,requireOrganizer, eventController.deleteEvent);
 /**
  * @swagger
  * /api/v1/events/{id}/stats:
