@@ -1,3 +1,4 @@
+//importe le paquet express
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -11,9 +12,9 @@ const PORT = process.env.PORT || 5000;
 // Configuration PostgreSQL
 const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
+    port: process.env.DB_PORT || 5433,
     database: process.env.DB_NAME || 'eventify_db',
-    user: process.env.DB_USER || 'eventify_user',
+    user: process.env.DB_USERNAME || 'eventify_user',
     password: process.env.DB_PASSWORD || 'eventify123',
 });
 
