@@ -22,7 +22,27 @@ function createCategoryModel(sequelize) {
             unique: true
         }
     }, {
-        tableName: 'categories'
+        tableName: 'categories',
+        hooks: {
+            beforeValidate: (category) => {
+                if (!category.slug) {
+                    category.slug = category.name
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, '-')
+                        .replace(/-+/g, '-')
+                        .replace(/^-|-$/g, '');
+                }
+            },
+            beforeUpdate: (category) => {
+                if (category.changed('name') && !category.changed('slug')) {
+                    category.slug = category.name
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, '-')
+                        .replace(/-+/g, '-')
+                        .replace(/^-|-$/g, '');
+                }
+            }
+        }
     });
 
     return Category;
