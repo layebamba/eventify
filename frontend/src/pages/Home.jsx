@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import logo from '../assets/Eventify.png'
+import Layout from '../components/Layout';
 
 export default function Home() {
     const [events, setEvents] = useState([]);
@@ -11,8 +11,8 @@ export default function Home() {
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [eventsPerPage] = useState(6);
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
-    const [searchTerm, setSearchTerm] = useState("");
     useEffect(() => {
         fetch("http://localhost:5000/api/v1/events")
             .then((res) => res.json())
@@ -22,6 +22,7 @@ export default function Home() {
                 setFilteredEvents(resData.data);
             })
             .catch((err) => console.error("Erreur fetch:", err));
+
         fetch("http://localhost:5000/api/v1/categories")
             .then((res) => res.json())
             .then((resData) => {
@@ -50,6 +51,7 @@ export default function Home() {
 
         return [avgLat, avgLng];
     };
+
     const getCategoryIcon = (categoryName) => {
         const icons = {
             'Développement économique et social': '📈',
@@ -70,6 +72,7 @@ export default function Home() {
         };
         return icons[categoryName] || '📅';
     };
+
     const getRandomColor = (index) => {
         const colors = [
             'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
@@ -77,6 +80,7 @@ export default function Home() {
         ];
         return colors[index % colors.length];
     };
+
     const nextCategories = () => {
         setCurrentCategoryIndex(prev =>
             prev + 5 >= categories.length ? 0 : prev + 5
@@ -88,20 +92,20 @@ export default function Home() {
             prev - 5 < 0 ? Math.max(0, categories.length - 5) : prev - 5
         );
     };
-    const handleSearch = () => {
-        setCurrentPage(1);
-        if (searchTerm.trim() === "") {
+    const filterByCategory = (category) => {
+        if (selectedCategory === category.id) {
+            // Désélectionner la catégorie
+            setSelectedCategory(null);
             setFilteredEvents(events);
         } else {
-            const filtered = events.filter(event =>
-                event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                event.location.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            // Sélectionner la catégorie
+            setSelectedCategory(category.id);
+            const filtered = events.filter(event => event.categoryId === category.id);
             setFilteredEvents(filtered);
         }
+        setCurrentPage(1);
     };
-    //pagination
+    // Pagination
     const indexOfLastEvent = currentPage * eventsPerPage;
     const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
     const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent);
@@ -110,100 +114,49 @@ export default function Home() {
     const paginate = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
+
     return (
-        <div className="p-6 bg-gray-100 min-h-screen">
-            <div className="bg-white rounded-lg shadow-md mb-6 p-2">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-
-                    <img
-                        src={logo}
-                        alt="Eventify"
-                        className="h-20 w-72 md:h-20 md:w-56 object-contain cursor-pointer"
-                        onClick={() => window.location.href = "/"}
-                    />
-                    <div className="relative flex-1 max-w-md">
-                        <input
-                            type="text"
-                            placeholder="Rechercher des événements..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                // Recherche en temps réel
-                                if (e.target.value.trim() === "") {
-                                    setFilteredEvents(events);
-                                }
-                            }}
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                    handleSearch();
-                                }
-                            }}
-                            className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-gray-50 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 focus:bg-white"
-                        />
-                        <div className="absolute left-3 top-2.5 text-gray-400">
-                            🔍
-                        </div>
-                    </div>
-                    {/* Menu de navigation */}
-                    <nav className="flex flex-wrap gap-2 md:gap-4">
-                        <button
-                            onClick={() => window.location.href = "/"}
-                            className="px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-700 rounded-md transition-colors"
-                        >
-                            🏠 Accueil
-                        </button>
-
-                        <button
-                            onClick={() => window.location.href = "/dashboard"}
-                            className="px-4 py-2 text-gray-700 hover:bg-green-100 hover:text-green-700 rounded-md transition-colors"
-                        >
-                            📊 Dashboard
-                        </button>
-
-                        {/* Séparateur visuel */}
-                        <div className="hidden md:block w-px bg-gray-300 mx-2"></div>
-
-                        <button
-                            onClick={() => window.location.href = "/login"}
-                            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                            🔑 Connexion
-                        </button>
-
-                        <button
-                            onClick={() => window.location.href = "/register"}
-                            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                            📝 Inscription
-                        </button>
-                    </nav>
-                </div>
-            </div>
+        <Layout
+            showSearch={true}
+            events={events}
+            setFilteredEvents={setFilteredEvents}
+            onSearchReset={() => setCurrentPage(1)}
+        >
+        <div className="p-6 bg-gray-50 min-h-screen">
             <div className="mb-8">
                 <div className="flex items-center justify-between">
                     <button
                         onClick={prevCategories}
                         className="bg-gray-200 hover:bg-gray-300 rounded-full p-2"
+                        disabled={categories.length <= 5}
                     >
                         ←
                     </button>
-
                     <div className="flex-1 grid grid-cols-5 gap-4 mx-4">
                         {categories.slice(currentCategoryIndex, currentCategoryIndex + 5).map((category, index) => (
                             <div key={category.id} className="text-center">
-                                <div className={`w-16 h-16 mx-auto mb-2 rounded-full flex items-center justify-center text-white text-xl shadow-md ${getRandomColor(currentCategoryIndex + index)}`}>
+                                <div
+                                    className={`w-16 h-16 mx-auto mb-2 rounded-full flex items-center justify-center text-white text-xl shadow-md hover:scale-105 transition-transform cursor-pointer ${
+                                        selectedCategory === category.id
+                                            ? 'bg-yellow-500 ring-4 ring-yellow-300'
+                                            : getRandomColor(currentCategoryIndex + index)
+                                    }`}
+                                    onClick={() => filterByCategory(category)}
+                                >
                                     {getCategoryIcon(category.name)}
                                 </div>
-                                <p className="text-xs text-gray-700 font-medium line-clamp-2">
+                                <p className={`text-xs font-medium line-clamp-2 ${
+                                    selectedCategory === category.id ? 'text-yellow-600' : 'text-gray-700'
+                                }`}>
                                     {category.name}
                                 </p>
                             </div>
                         ))}
                     </div>
-
                     <button
                         onClick={nextCategories}
                         className="bg-gray-200 hover:bg-gray-300 rounded-full p-2"
+                        disabled={categories.length <= 5}
                     >
                         →
                     </button>
@@ -212,7 +165,7 @@ export default function Home() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Événements</h1>
             </div>
-            {/* Liste des événements */}
+
             <div className="mb-8">
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
                     <h2 className="text-lg font-semibold text-gray-800">
@@ -224,7 +177,6 @@ export default function Home() {
                     {currentEvents.length > 0 ? (
                         currentEvents.map((event) => (
                             <div key={event.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-                                {/* Image */}
                                 <div className="h-48 bg-gray-200">
                                     {event.imageUrl ? (
                                         <img
@@ -238,8 +190,6 @@ export default function Home() {
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Contenu */}
                                 <div className="p-4">
                                     <h2 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2 text-left">
                                         {event.title}
@@ -258,11 +208,9 @@ export default function Home() {
                                             📍 {event.location}
                                         </p>
                                     </div>
-
-                                    {/* Bouton Détail */}
                                     <button
                                         onClick={() => window.location.href = `/event/${event.id}`}
-                                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-yellow-300 transition-colors text-sm font-medium"
                                     >
                                         Voir les détails
                                     </button>
@@ -270,17 +218,12 @@ export default function Home() {
                             </div>
                         ))
                     ) : (
-
                         <div className="col-span-full text-center py-12">
-                            <p className="text-gray-500">
-                                {searchTerm ? `Aucun résultat pour "${searchTerm}"` : "Aucun événement pour le moment."}
-                            </p>
                             <p className="text-gray-500">Aucun événement pour le moment.</p>
                         </div>
                     )}
                 </div>
             </div>
-            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex justify-center mt-8">
                     <div className="flex space-x-2">
@@ -292,8 +235,6 @@ export default function Home() {
                         >
                             Précédent
                         </button>
-
-                        {/* Numéros de pages */}
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
                             <button
                                 key={number}
@@ -307,8 +248,6 @@ export default function Home() {
                                 {number}
                             </button>
                         ))}
-
-                        {/* Bouton Suivant */}
                         <button
                             onClick={() => paginate(currentPage + 1)}
                             disabled={currentPage === totalPages}
@@ -319,7 +258,6 @@ export default function Home() {
                     </div>
                 </div>
             )}
-            {/* Carte des événements */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b">
                     <h2 className="text-lg font-semibold text-gray-800">
@@ -362,7 +300,7 @@ export default function Home() {
                                         </div>
                                         <button
                                             onClick={() => window.location.href = `/event/${event.id}`}
-                                            className="w-full bg-blue-600 text-white py-1 px-2 rounded text-xs hover:bg-blue-700"
+                                            className="w-full bg-green-600 text-white py-1 px-2 rounded text-xs hover:bg-green-600"
                                         >
                                             Voir détails
                                         </button>
@@ -373,46 +311,8 @@ export default function Home() {
                     }
                 </MapContainer>
             </div>
-            {/* Pied de page */}
-            <footer className="bg-white rounded-lg shadow-md mt-8 p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3">À propos</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                            Plateforme de gestion et découverte d'événements à Dakar et environs.
-                        </p>
-                        <p className="text-xs text-gray-500">
-                            📍 Dakar, Sénégal
-                        </p>
-                    </div>
 
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Liens rapides</h3>
-                        <div className="space-y-2 text-sm text-gray-600">
-                            <button className="block hover:text-blue-600 transition-colors">
-                                🏠 Accueil
-                            </button>
-                            <button className="block hover:text-blue-600 transition-colors">
-                                📅 Mes inscriptions
-                            </button>
-                            <button className="block hover:text-blue-600 transition-colors">
-                                ❓ Aide
-                            </button>
-                            <button className="block hover:text-blue-600 transition-colors">
-                                📞 Contact
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div className="border-t border-gray-200 pt-4">
-                    <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-                        <p>© 2024 Plateforme Événements. Tous droits réservés.</p>
-                        <p className="mt-2 md:mt-0">
-                            Développé avec ❤️ à Dakar
-                        </p>
-                    </div>
-                </div>
-            </footer>
         </div>
+        </Layout>
     );
 }
