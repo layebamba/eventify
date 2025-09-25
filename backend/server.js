@@ -3,12 +3,43 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { Pool } = require('pg');
 const { Sequelize } = require('sequelize');
+const jwt = require('jsonwebtoken');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 require('dotenv').config();
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+// Configuration Swagger
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Eventify API',
+            version: '1.0.0',
+            description: 'API pour la gestion d\'événements Eventify'
+        },
+        servers: [
+            {
+                url: process.env.NODE_ENV === 'production'
+                    ? 'https://eventify-xj6l.onrender.com'
+                    : 'http://localhost:5000',
+                description: process.env.NODE_ENV === 'production' ? 'Production' : 'Development'
+            }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        }
+    },
+    apis: ['./server.js','./src/routes/*.js']
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
@@ -97,6 +128,15 @@ EventView.belongsTo(Event, {
     foreignKey: 'eventId',
     as: 'event'
 });
+// Import des routes
+const initAuthRoutes = require('./src/routes/auth');
+const initEventRoutes = require('./src/routes/eventRoutes');
+const initCategoryRoutes = require('./src/routes/categoryRoutes');
+const initRegistrationRoutes = require('./src/routes/registrationRoutes');
+const registrationRoutes = initRegistrationRoutes({ User, Category, Event, Registration, EventView });
+const categoryRoutes = initCategoryRoutes({User, Category, Event, Registration, EventView });
+const eventRoutes = initEventRoutes({ User, Category, Event, Registration, EventView });
+const authRoutes = initAuthRoutes({ User, Category, Event, Registration, EventView });
 async function testConnection() {
     try {
         console.log('🔍 Test de connexion PostgreSQL...');
@@ -116,15 +156,13 @@ async function testConnection() {
         return { success: false, error: error.message };
     }
 }
-
 // ===== MIDDLEWARE BASIQUES =====
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 // ===== ROUTES =====
-
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/', (req, res) => {
     res.json({
         message: 'Serveur Eventify avec PostgreSQL !',
@@ -237,23 +275,6 @@ app.get('/api/v1/relations', async (req, res) => {
         });
     }
 });
-app.get('/api/v1/registration', async (req, res) => {
-    try {
-        const registrationCount = await Registration.count();
-        res.json({
-            status: 'success',
-            message: 'Modèle Registration fonctionne !',
-            registrationCount: registrationCount,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Erreur modèle Registration',
-            error: error.message
-        });
-    }
-});
 
 app.get('/api/v1/eventview', async (req, res) => {
     try {
@@ -298,7 +319,10 @@ app.get('/api/v1/allrelations', async (req, res) => {
         });
     }
 });
-
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/events', eventRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/registrations', registrationRoutes);
 // Route 404
 app.use((req, res) => {
     res.status(404).json({
@@ -318,7 +342,7 @@ async function startServer() {
             console.error(' Impossible de connecter à la DB');
             process.exit(1);
         }
-        await sequelize.sync({ force: false });
+        await sequelize.sync({ alter: true });
         console.log('✅ Table User créée !');
 
         app.listen(PORT, () => {
