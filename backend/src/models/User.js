@@ -10,19 +10,56 @@ function createUserModel(sequelize) {
         email: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true
+            unique: true,
+            validate: {
+                is: {
+                    args: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.]+\.[a-zA-Z]{2,}$/,
+                    msg: "Format email invalide (pas d'espaces ou tirets autorisés)"
+                }
+            }
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                len: {
+                    args: [6, 50],
+                    msg: "Mot de passe entre 6 et 50 caractères"
+                },
+                is: {
+                    args: /^[^\s-]+$/,
+                    msg: "Mot de passe ne doit pas contenir d'espaces ou tirets"
+                }
+            }
         },
         firstName: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                len: {
+                    args: [2, 50],
+                    msg: "Le prénom doit contenir entre 2 et 50 caractères"
+                },
+                is: {
+                    args: /^[a-zA-ZÀ-ÿ]+$/,
+                    msg: "Le prénom ne doit contenir que des lettres (pas d'espaces)"
+                }
+            }
+
         },
         lastName: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                len: {
+                    args: [2, 50],
+                    msg: "Le nom doit contenir entre 2 et 50 caractères"
+                },
+                is: {
+                    args: /^[a-zA-ZÀ-ÿ]+$/,
+                    msg: "Le nom ne doit contenir que des lettres (pas d'espaces)"
+                }
+            }
         },
         role: {
             type: DataTypes.ENUM('participant', 'organisateur'),
