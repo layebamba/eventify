@@ -31,8 +31,6 @@ export default function Home() {
             })
             .catch((err) => console.error("Erreur catégories:", err));
     }, []);
-
-    // Configuration de l'icône des marqueurs
     const eventIcon = L.icon({
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
         iconSize: [25, 41],
@@ -94,11 +92,9 @@ export default function Home() {
     };
     const filterByCategory = (category) => {
         if (selectedCategory === category.id) {
-            // Désélectionner la catégorie
             setSelectedCategory(null);
             setFilteredEvents(events);
         } else {
-            // Sélectionner la catégorie
             setSelectedCategory(category.id);
             const filtered = events.filter(event => event.categoryId === category.id);
             setFilteredEvents(filtered);
@@ -113,6 +109,16 @@ export default function Home() {
 
     const paginate = (pageNumber) => {
         setCurrentPage(pageNumber);
+    };
+    const handleEventDetails = (eventId) => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            if (confirm('Vous devez vous connecter pour voir les détails. Aller à la page de connexion ?')) {
+                window.location.href = '/login';
+            }
+        } else {
+            window.location.href = `/event/${eventId}`;
+        }
     };
 
     return (
@@ -209,7 +215,7 @@ export default function Home() {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => window.location.href = `/event/${event.id}`}
+                                        onClick={() => handleEventDetails(event.id)}
                                         className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-yellow-300 transition-colors text-sm font-medium"
                                     >
                                         Voir les détails
@@ -227,7 +233,7 @@ export default function Home() {
             {totalPages > 1 && (
                 <div className="flex justify-center mt-8">
                     <div className="flex space-x-2">
-                        {/* Bouton Précédent */}
+
                         <button
                             onClick={() => paginate(currentPage - 1)}
                             disabled={currentPage === 1}
@@ -299,7 +305,7 @@ export default function Home() {
                                             <p>📍 {event.location}</p>
                                         </div>
                                         <button
-                                            onClick={() => window.location.href = `/event/${event.id}`}
+                                            onClick={() => handleEventDetails(event.id)}
                                             className="w-full bg-green-600 text-white py-1 px-2 rounded text-xs hover:bg-green-600"
                                         >
                                             Voir détails
