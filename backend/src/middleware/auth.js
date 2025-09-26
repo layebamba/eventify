@@ -11,7 +11,9 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
+
+
         if (err) {
             return res.status(403).json({
                 status: 'error',
@@ -19,12 +21,13 @@ const authenticateToken = (req, res, next) => {
             });
         }
 
-        req.user = user;
+        req.user = {
+            userId: Number(decodedToken.userId),
+            role: decodedToken.role
+        };
         next();
     });
 };
-
-// Middleware pour vérifier que l'utilisateur est organisateur
 const requireOrganizer = (req, res, next) => {
     if (req.user.role !== 'organisateur') {
         return res.status(403).json({
@@ -34,6 +37,7 @@ const requireOrganizer = (req, res, next) => {
     }
     next();
 };
+
 
 module.exports = {
     authenticateToken,

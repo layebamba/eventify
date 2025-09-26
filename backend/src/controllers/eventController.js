@@ -1,6 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-let Event, User, Category;
+let Event, User, Category, EventView, Registration;
 /**
  * Initialise le modèle events
  * @param {Object} models - Les modèles Sequelize
@@ -9,6 +9,8 @@ const initController = (models) => {
     Event = models.Event;
     User = models.User;
     Category = models.Category;
+    EventView = models.EventView;
+    Registration = models.Registration;
 };
 
 
@@ -24,7 +26,6 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
     fileFilter: (req, file, cb) => {
-        // Filtrer les types de fichiers
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
         } else {
@@ -129,6 +130,35 @@ const getAllEvents = async (req, res) => {
     }
 };
 
+const getMyEvents = async (req, res) => {
+    try {
+        const organizerId = req.user.userId;
+
+        const events = await Event.findAll({
+            where: {
+                organizerId: organizerId
+            },
+            include: [
+                { model: User, as: 'organizer', attributes: ['id', 'firstName', 'lastName'] },
+                { model: Category, as: 'category', attributes: ['id', 'name'] }
+            ],
+            order: [['eventDate', 'ASC']]
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: events,
+            total: events.length
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Erreur lors de la récupération des événements',
+            error: error.message
+        });
+    }
+};
 
 // READ: Récupérer un événement par ID
 const getEventById = async (req, res) => {
@@ -186,10 +216,49 @@ const getEventStats = async (req, res) => {
         }
 
         const viewCount = await EventView.count({ where: { eventId: id } });
+        const registrationCount = await Registration.count({ where: { eventId: id } });
 
         res.json({
-            eventTitle: event.title,
-            totalViews: viewCount
+            eventId: event.id,
+            title: event.title,
+            totalViews: viewCount,
+            totalRegistrations: registrationCount
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+const getOrganizerStats = async (req, res) => {
+    console.log(req.user);
+    const organizerId = Number(req.user.userId);
+
+    try {
+        console.log("organizerId:", organizerId, typeof organizerId);
+        // Récupérer les événements de l’organisateur
+        const events = await Event.findAll({
+            where: { organizerId },
+            attributes: ['id', 'title','isPublic']
+        });
+
+        // Récupérer stats pour chaque event
+        const stats = await Promise.all(events.map(async (event) => {
+            const views = await EventView.count({ where: { eventId: event.id } });
+            const registrations = await Registration.count({ where: { eventId: event.id } });
+
+            return {
+                eventId: event.id,
+                title: event.title,
+                views,
+                registrations,
+                isPublic: event.isPublic
+            };
+        }));
+
+        res.status(200).json({
+            status: 'success',
+            organizerId,
+            totalEvents: events.length,
+            stats
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -311,6 +380,8 @@ module.exports = {
     getEventStats,
     upload,
     getEventById,
+    getOrganizerStats,
+    getMyEvents,
     updateEvent,
     deleteEvent
 };

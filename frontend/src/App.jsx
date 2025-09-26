@@ -1,10 +1,10 @@
-
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 import Home from "./pages/Home.jsx";
 import Logout from "./pages/Logout.jsx";
 import EventDetail from "./pages/EventDetail.jsx";
@@ -12,34 +12,29 @@ import EventListPage from "./pages/EventListPage.jsx";
 import EditEventPage from "./pages/EditEventPage.jsx";
 import EventDetailsPage from "./pages/EventDetailsPage.jsx";
 
-function BoardParticipant() {
-    return null;
-}
-
 function App() {
     return (
         <Router>
             <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/register" element={<Register/>}/>
-                <Route path="/login" element={<Login/>}/>
-                <Route path="/logout" element={<Logout />} />
-                <Route path="/event/:id" element={<EventDetail />} />
-                <Route path="/events" element={<EventListPage />} />
-                <Route path="/events/edit/:id" element={<EditEventPage />} />
-                <Route path="/events/:id" element={<EventDetailsPage />} />
-                <Route path="/boardParticipant" element={<BoardParticipant />} />
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute>
+                <Route path="/event/:id" element={<Layout><EventDetail /></Layout>} />
+                <Route path="/events" element={<Layout><EventListPage /></Layout>} />
+                <Route path="/events/edit/:id" element={<Layout><EditEventPage /></Layout>} />
+                <Route path="/events/:id" element={<Layout><EventDetailsPage /></Layout>} />
+                <Route path="/logout" element={<Layout><Logout /></Layout>} />
+                <Route path="/dashboard" element={
+                    <Layout>
+                        <ProtectedRoute  requiredRole="organisateur">
                             <Dashboard />
                         </ProtectedRoute>
-                    }
-                />
+                    </Layout>
+                } />
+                <Route path="/register" element={<Register/>}/>
+                <Route path="/login" element={<Login/>}/>
+
                 <Route path="*" element={
-                    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                        <div className="text-center">
+                    <Layout>
+                        <div className="p-6 text-center">
                             <h1 className="text-4xl font-bold text-gray-800 mb-4">404</h1>
                             <p className="text-gray-600 mb-4">Page non trouvée</p>
                             <button
@@ -49,10 +44,11 @@ function App() {
                                 Retour à l'accueil
                             </button>
                         </div>
-                    </div>
+                    </Layout>
                 } />
             </Routes>
         </Router>
     );
 }
+
 export default App

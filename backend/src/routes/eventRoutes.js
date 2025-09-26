@@ -103,7 +103,7 @@ router.get('/', eventController.getAllEvents);
  *       404:
  *         description: Événement non trouvé
  */
-router.get('/:id',authenticateToken, eventController.getEventById);
+router.get('/:id', eventController.getEventById);
 /**
  * @swagger
  * /api/v1/events/{id}:
@@ -152,7 +152,7 @@ router.get('/:id',authenticateToken, eventController.getEventById);
  *       404:
  *         description: Événement non trouvé
  */
-router.put('/:id',authenticateToken, requireOrganizer, upload.single('image'), eventController.updateEvent);
+router.put('/:id', authenticateToken,requireOrganizer, upload.single('image'), eventController.updateEvent);
 
 
 /**
@@ -174,7 +174,163 @@ router.put('/:id',authenticateToken, requireOrganizer, upload.single('image'), e
  *       404:
  *         description: Événement non trouvé
  */
-router.delete('/:id',authenticateToken,requireOrganizer, eventController.deleteEvent);
+router.delete('/:id',requireOrganizer, eventController.deleteEvent);
+/**
+ * @swagger
+ * /api/v1/events/organizer/stats:
+ *   get:
+ *     summary: Obtenir les statistiques globales de l'organisateur
+ *     tags: [Événements]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistiques globales de l’organisateur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 organizerId:
+ *                   type: integer
+ *                   description: ID de l’organisateur
+ *                   example: 5
+ *                 totalEvents:
+ *                   type: integer
+ *                   description: Nombre total d’événements créés par l’organisateur
+ *                   example: 3
+ *                 stats:
+ *                   type: array
+ *                   description: Liste des statistiques par événement
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       eventId:
+ *                         type: integer
+ *                         example: 12
+ *                       title:
+ *                         type: string
+ *                         example: "Conférence Tech 2025"
+ *                       views:
+ *                         type: integer
+ *                         description: Nombre de vues de l’événement
+ *                         example: 120
+ *                       registrations:
+ *                         type: integer
+ *                         description: Nombre d’inscriptions à l’événement
+ *                         example: 45
+ *       401:
+ *         description: Non authentifié (token manquant ou invalide)
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get('/organizer/stats', authenticateToken, eventController.getOrganizerStats);
+/**
+ * @swagger
+ * /api/v1/events/organizer/my-events:
+ *   get:
+ *     tags:
+ *       - Events - Organizer
+ *     summary: Récupérer tous mes événements
+ *     description: Permet à un organisateur authentifié de récupérer tous ses événements (publics et privés)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des événements récupérée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       title:
+ *                         type: string
+ *                         example: "Concert de musique traditionnelle"
+ *                       description:
+ *                         type: string
+ *                         example: "Un événement culturel exceptionnel"
+ *                       eventDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-12-25T20:00:00Z"
+ *                       location:
+ *                         type: string
+ *                         example: "Centre culturel de Dakar"
+ *                       maxParticipants:
+ *                         type: integer
+ *                         example: 100
+ *                       isPublic:
+ *                         type: boolean
+ *                         example: true
+ *                       organizer:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           firstName:
+ *                             type: string
+ *                             example: "Aminata"
+ *                           lastName:
+ *                             type: string
+ *                             example: "Diallo"
+ *                       category:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Musique"
+ *                 total:
+ *                   type: integer
+ *                   example: 5
+ *       401:
+ *         description: Non autorisé - Token manquant ou invalide
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Token d'authentification requis"
+ *       500:
+ *         description: Erreur serveur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Erreur lors de la récupération des événements"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get('/organizer/my-events', authenticateToken,eventController.getMyEvents);
 /**
  * @swagger
  * /api/v1/events/{id}/stats:
@@ -210,5 +366,6 @@ router.delete('/:id',authenticateToken,requireOrganizer, eventController.deleteE
  *         description: Événement non trouvé
  */
 router.get('/:id/stats', authenticateToken, eventController.getEventStats);
+
 
 module.exports = initEventRoutes;
